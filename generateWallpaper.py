@@ -5,27 +5,48 @@ import json
 
 commandList = []
 
+def to_mb(text):
+    number = float(text[:-1])
+    if text.count('M') > 0:
+        return number
+    if text.count('G') > 0:
+        return number * 1024
+    if text.count('K') > 0:
+        return number / 1024
+
 with open("top.out", "r") as topFile:
-    topOutput = topFile.read().split("\n")[7:]
-    
+    allText = topFile.read()
+    allText = allText[allText.rfind('Processes: '):]
+    lines = allText.split("\n")
+
+    reg = "\d+[GMK]?"
+
+    all = re.findall(reg, lines[6])
+
+    used = to_mb(all[0])
+    unused = to_mb(all[2])
+    total = used + unused
+
+    topOutput = lines[9:]
+
     for line in topOutput[:-1]:
         line = re.sub(r'\s+', ' ', line).strip()
         fields = line.split(" ")
-        
-        try:
-            if fields[11].count("/") > 0:
-                command = fields[11].split("/")[0]
-            else:
-                command = fields[11]
 
-            cpu = float(fields[8].replace(",", "."))
-            mem = float(fields[9].replace(",", "."))
+        try:
+            if fields[1].count("/") > 0:
+                command = fields[1].split("/")[0]
+            else:
+                command = fields[1]
+
+            cpu = float(fields[3].replace(",", "."))
+            mem = to_mb(fields[2].replace("+", "")) / total * 100.0
 
             if command != "top":
                 commandList.append((command, cpu, mem))
         except:
             pass
-        
+
 
 commandDict = {}
 
@@ -54,10 +75,10 @@ wc.to_file('wc.png')
 wordcloud = Image.open("wc.png")
 wallpaper = Image.new('RGB', (configJSON["resolution"]["width"], configJSON["resolution"]["height"]), configJSON["wordcloud"]["background"])
 wallpaper.paste(
-    wordcloud, 
+    wordcloud,
     (
         configJSON["wordcloud"]["margin"],
         configJSON["wordcloud"]["margin"]
-    )    
+    )
 )
 wallpaper.save("wallpaper.png")
